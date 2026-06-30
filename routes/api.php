@@ -3,10 +3,13 @@
 use App\Http\Controllers\Api\AttentionLocationController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CatalogController;
+use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\GeographyController;
 use App\Http\Controllers\Api\HealthController;
+use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\NnaRegistrationController;
 use App\Http\Controllers\Api\OperativoController;
+use App\Http\Controllers\Api\ReportController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -40,5 +43,12 @@ Route::prefix('v1')->group(function (): void {
         Route::put('/nna/{nnaRegistration}', [NnaRegistrationController::class, 'update']);
         Route::delete('/nna/{nnaRegistration}', [NnaRegistrationController::class, 'destroy']);
         Route::post('/nna/{nnaRegistration}/photos', [NnaRegistrationController::class, 'uploadPhoto']);
+
+        Route::get('/dashboard/stats', [DashboardController::class, 'index']);
+        Route::get('/reports/export', [ReportController::class, 'export']);
+
+        Route::get('/imports', [ImportController::class, 'index']);
+        Route::post('/imports/preview', [ImportController::class, 'preview']);
+        Route::post('/imports', [ImportController::class, 'store']);
     });
 });
