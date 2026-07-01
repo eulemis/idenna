@@ -36,6 +36,12 @@ DB_DATABASE=idenna
 DB_USERNAME=root
 DB_PASSWORD=tu_password
 FRONTEND_URL=http://localhost:5173
+
+# Geografía Venezuela (importación desde proyecto conapdis)
+CONAPDIS_DB_HOST=127.0.0.1
+CONAPDIS_DB_DATABASE=ConapdisFinal
+CONAPDIS_DB_USERNAME=root
+CONAPDIS_DB_PASSWORD=tu_password
 ```
 
 3. Ejecutar migraciones y seeders:
@@ -43,6 +49,15 @@ FRONTEND_URL=http://localhost:5173
 ```bash
 php artisan migrate --seed
 ```
+
+Para recargar solo estados/municipios/parroquias desde la BD legacy de conapdis (`estados`, `municipios`, `parroquias`):
+
+```bash
+php artisan config:clear
+php artisan db:seed --class=GeographySeeder
+```
+
+> En conapdis esas tablas son **legacy** (existen en la BD de producción; no hay migraciones `create` en el repo). Apuntar `CONAPDIS_DB_DATABASE` a la base con datos, por ejemplo `ConapdisFinal`.
 
 ### Servidor de desarrollo
 
@@ -68,6 +83,7 @@ API disponible en: `http://localhost:8000/api/v1`
 | GET | `/api/v1/health` | Estado del servicio |
 | POST | `/api/v1/login` | Autenticación |
 | GET | `/api/v1/me` | Usuario autenticado |
+| PUT | `/api/v1/me/password` | Cambiar contraseña (usuario autenticado) |
 | POST | `/api/v1/logout` | Cerrar sesión |
 | GET | `/api/v1/operativos` | Listar operativos |
 | POST | `/api/v1/operativos` | Crear operativo |
@@ -78,3 +94,5 @@ API disponible en: `http://localhost:8000/api/v1`
 ## Documentación
 
 Ver [docs/FASE-01-ARQUITECTURA.md](docs/FASE-01-ARQUITECTURA.md) para decisiones técnicas y roadmap.
+
+Ver [docs/COMANDOS-PRODUCCION.md](docs/COMANDOS-PRODUCCION.md) para importación masiva, registradores y despliegue.

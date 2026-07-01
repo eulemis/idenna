@@ -20,7 +20,7 @@ class GeographyController extends Controller
         $this->authorize('catalogs.view');
 
         return EstadoResource::collection(
-            Estado::query()->where('is_active', true)->orderBy('name')->get()
+            Estado::query()->venezuela()->where('is_active', true)->orderBy('name')->get()
         );
     }
 
@@ -47,6 +47,7 @@ class GeographyController extends Controller
         $this->authorize('catalogs.view');
 
         $estados = Estado::query()
+            ->venezuela()
             ->where('is_active', true)
             ->with(['municipios' => fn ($q) => $q->where('is_active', true)->orderBy('name')->with(['parroquias' => fn ($q2) => $q2->where('is_active', true)->orderBy('name')])])
             ->orderBy('name')

@@ -9,9 +9,12 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardService
 {
-    public function getStats(?int $operativoId = null): array
+    /**
+     * @param  array{operativo_id?: int|null, estado_id?: int|null, from?: string|null, to?: string|null}  $filters
+     */
+    public function getStats(array $filters = []): array
     {
-        $baseQuery = NnaRegistration::query()->when($operativoId, fn ($q) => $q->where('operativo_id', $operativoId));
+        $baseQuery = $this->filteredQuery($filters);
 
         $total = (clone $baseQuery)->count();
         $today = (clone $baseQuery)->whereDate('registered_at', today())->count();
@@ -22,6 +25,7 @@ class DashboardService
             ->select('estado_id', DB::raw('count(*) as total'))
             ->whereNotNull('estado_id')
             ->groupBy('estado_id')
+            ->orderByDesc('total')
             ->get()
             ->map(function ($row) {
                 $estado = Estado::find($row->estado_id);
@@ -29,7 +33,7 @@ class DashboardService
                 return [
                     'estado_id' => $row->estado_id,
                     'name' => $estado?->name ?? 'Sin estado',
-                    'total' => $row->total,
+                    'total' => (int) $row->total,
                 ];
             });
 
@@ -42,7 +46,7 @@ class DashboardService
                 return [
                     'gender_id' => $row->gender_id,
                     'name' => DB::table('catalogs')->where('id', $row->gender_id)->value('name') ?? 'N/D',
-                    'total' => $row->total,
+                    'total' => (int) $row->total,
                 ];
             });
 
@@ -59,7 +63,7 @@ class DashboardService
             )
             ->groupBy('age_group')
             ->get()
-            ->map(fn ($r) => ['group' => $r->age_group, 'total' => $r->total]);
+            ->map(fn ($r) => ['group' => $r->age_group, 'total' => (int) $r->total]);
 
         $timeline = (clone $baseQuery)
             ->select(DB::raw('DATE(registered_at) as date'), DB::raw('count(*) as total'))
@@ -68,7 +72,7 @@ class DashboardService
             ->groupBy('date')
             ->orderBy('date')
             ->get()
-            ->map(fn ($r) => ['date' => $r->date, 'total' => $r->total]);
+            ->map(fn ($r) => ['date' => $r->date, 'total' => (int) $r->total]);
 
         $byUser = (clone $baseQuery)
             ->select('registered_by', DB::raw('count(*) as total'))
@@ -83,7 +87,21 @@ class DashboardService
                 return [
                     'user_id' => $row->registered_by,
                     'name' => $user?->name ?? 'Desconocido',
-                    'total' => $row->total,
+                    'total' => (int) $row->total,
+                ];
+            });
+
+        $byLugar = (clone $baseQuery)
+            ->select('lugar_nna_id', DB::raw('count(*) as total'))
+            ->whereNotNull('lugar_nna_id')
+            ->groupBy('lugar_nna_id')
+            ->orderByDesc('total')
+            ->get()
+            ->map(function ($row) {
+                return [
+                    'lugar_nna_id' => $row->lugar_nna_id,
+                    'name' => DB::table('catalogs')->where('id', $row->lugar_nna_id)->value('name') ?? 'N/D',
+                    'total' => (int) $row->total,
                 ];
             });
 
@@ -99,6 +117,34 @@ class DashboardService
             'by_age_group' => $byAge,
             'timeline' => $timeline,
             'productivity_by_user' => $byUser,
+            'by_lugar' => $byLugar,
+            'filters_applied' => array_filter($filters),
         ];
+    }
+
+    /**
+     * @param  array{operativo_id?: int|null, estado_id?: int|null, from?: string|null, to?: string|null}  $filters
+     */
+    private function filteredQuery(array $filters)
+    {
+        $query = NnaRegistration::query();
+
+        if (! empty($filters['operativo_id'])) {
+            $query->where('operativo_id', (int) $filters['operativo_id']);
+        }
+
+        if (! empty($filters['estado_id'])) {
+            $query->where('estado_id', (int) $filters['estado_id']);
+        }
+
+        if (! empty($filters['from'])) {
+            $query->whereDate('registered_at', '>=', $filters['from']);
+        }
+
+        if (! empty($filters['to'])) {
+            $query->whereDate('registered_at', '<=', $filters['to']);
+        }
+
+        return $query;
     }
 }

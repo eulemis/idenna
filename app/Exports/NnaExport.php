@@ -3,21 +3,32 @@
 namespace App\Exports;
 
 use App\Models\NnaRegistration;
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Illuminate\Database\Eloquent\Builder;
+use Maatwebsite\Excel\Concerns\FromQuery;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 
-class NnaExport implements FromCollection, WithHeadings, WithMapping
+class NnaExport implements FromQuery, WithHeadings, WithMapping
 {
     public function __construct(private readonly ?int $operativoId = null) {}
 
-    public function collection()
+    public function query(): Builder
     {
         return NnaRegistration::query()
             ->when($this->operativoId, fn ($q) => $q->where('operativo_id', $this->operativoId))
-            ->with(['gender'])
-            ->orderBy('registered_at', 'desc')
-            ->get();
+            ->select([
+                'id',
+                'registration_code',
+                'uuid',
+                'first_name',
+                'last_name',
+                'age_years',
+                'birth_date',
+                'status',
+                'registered_at',
+                'notes',
+            ])
+            ->orderByDesc('registered_at');
     }
 
     public function headings(): array

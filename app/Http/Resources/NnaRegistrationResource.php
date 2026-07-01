@@ -48,8 +48,11 @@ class NnaRegistrationResource extends JsonResource
             'necesidad_ids' => $this->whenLoaded('necesidades', fn () => $this->necesidades->pluck('id')),
             'photos' => $this->whenLoaded('photos', fn () => $this->photos->map(fn ($photo) => [
                 'id' => $photo->id,
-                'url' => Storage::disk($photo->disk)->url($photo->path),
+                'url' => $photo->disk === 'external'
+                    ? $photo->path
+                    : Storage::disk($photo->disk)->url($photo->path),
                 'is_primary' => $photo->is_primary,
+                'external' => $photo->disk === 'external',
             ])),
             'created_at' => $this->created_at?->toIso8601String(),
             'updated_at' => $this->updated_at?->toIso8601String(),

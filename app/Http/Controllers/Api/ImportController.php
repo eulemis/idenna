@@ -17,7 +17,7 @@ class ImportController extends Controller
         $this->authorize('imports.manage');
 
         $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:51200'],
         ]);
 
         return response()->json([
@@ -30,24 +30,34 @@ class ImportController extends Controller
         $this->authorize('imports.manage');
 
         $validated = $request->validate([
-            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:10240'],
+            'file' => ['required', 'file', 'mimes:csv,txt,xlsx,xls', 'max:51200'],
             'operativo_id' => ['required', 'exists:operativos,id'],
-            'column_mapping' => ['required'],
+            'column_mapping' => ['nullable'],
+            'download_photos' => ['nullable', 'boolean'],
         ]);
 
-        $columnMapping = is_string($validated['column_mapping'])
+        $columnMapping = is_string($validated['column_mapping'] ?? null)
             ? json_decode($validated['column_mapping'], true, 512, JSON_THROW_ON_ERROR)
-            : $validated['column_mapping'];
+            : ($validated['column_mapping'] ?? []);
 
         if (empty($columnMapping['first_name']) || empty($columnMapping['last_name'])) {
-            return response()->json(['message' => 'Mapeo de nombres y apellidos es obligatorio.'], 422);
+            $headers = $this->importService->parseFile($request->file('file'))['headers'] ?? [];
+            $isGoogleForms = in_array(
+                'El Niño, Niña o Adolescente se encuentra en:',
+                $headers,
+                true,
+            );
+            if (! $isGoogleForms) {
+                return response()->json(['message' => 'Mapeo de nombres y apellidos es obligatorio.'], 422);
+            }
         }
 
         $batch = $this->importService->processImport(
             $request->file('file'),
             (int) $validated['operativo_id'],
             (int) $request->user()->id,
-            $columnMapping,
+            is_array($columnMapping) ? $columnMapping : [],
+            (bool) ($validated['download_photos'] ?? false),
         );
 
         return response()->json([

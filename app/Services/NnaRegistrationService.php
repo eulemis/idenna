@@ -17,7 +17,9 @@ class NnaRegistrationService
                 ...$this->extractCoreFields($data),
                 'local_uuid' => $data['local_uuid'] ?? (string) Str::uuid(),
                 'registered_by' => $userId,
-                'registered_at' => now(),
+                'registered_at' => isset($data['registered_at'])
+                    ? \Carbon\Carbon::parse($data['registered_at'])
+                    : now(),
                 'synced_at' => now(),
                 'status' => $data['status'] ?? NnaRegistrationStatus::Complete,
             ]);

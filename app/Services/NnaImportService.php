@@ -6,18 +6,23 @@ use App\Imports\ArrayImport;
 use App\Models\Catalog;
 use App\Models\ImportBatch;
 use App\Models\NnaRegistration;
+use App\Services\Import\GoogleFormsNnaImportService;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Excel as ExcelReaderType;
 
 class NnaImportService
 {
-    public function __construct(private readonly NnaRegistrationService $registrationService) {}
+    public function __construct(
+        private readonly NnaRegistrationService $registrationService,
+        private readonly GoogleFormsNnaImportService $googleFormsImporter,
+    ) {}
 
     public function parseFile(UploadedFile $file): array
     {
-        $extension = strtolower($file->getClientOriginalExtension());
+        $extension = $this->resolveUploadExtension($file);
         $rows = match ($extension) {
             'csv', 'txt' => $this->parseCsv($file->getRealPath()),
             'xlsx', 'xls' => $this->parseExcel($file),
@@ -43,6 +48,7 @@ class NnaImportService
             'sample_rows' => $dataRows,
             'total_rows' => max(0, $rows->count() - 1),
             'suggested_mapping' => $this->suggestMapping($headers),
+            'google_forms_terremoto' => $this->googleFormsImporter->canHandle($headers),
         ];
     }
 
@@ -51,8 +57,9 @@ class NnaImportService
         int $operativoId,
         int $userId,
         array $columnMapping,
+        bool $downloadPhotos = false,
     ): ImportBatch {
-        $extension = strtolower($file->getClientOriginalExtension());
+        $extension = $this->resolveUploadExtension($file);
         $rows = match ($extension) {
             'csv', 'txt' => $this->parseCsv($file->getRealPath()),
             'xlsx', 'xls' => $this->parseExcel($file),
@@ -60,6 +67,16 @@ class NnaImportService
         };
 
         $headers = array_map(fn ($h) => trim((string) $h), array_values($rows->first()));
+
+        if ($this->googleFormsImporter->canHandle($headers)) {
+            return $this->googleFormsImporter->importFromUpload(
+                $file,
+                $operativoId,
+                $userId,
+                $downloadPhotos,
+            );
+        }
+
         $batch = ImportBatch::query()->create([
             'operativo_id' => $operativoId,
             'user_id' => $userId,
@@ -117,10 +134,35 @@ class NnaImportService
 
     private function parseExcel(UploadedFile $file): Collection
     {
-        $data = Excel::toArray(new ArrayImport, $file);
+        $extension = $this->resolveUploadExtension($file);
+        $data = Excel::toArray(
+            new ArrayImport,
+            $file,
+            null,
+            $this->readerTypeForExtension($extension),
+        );
         $sheet = $data[0] ?? [];
 
         return collect($sheet);
+    }
+
+    private function resolveUploadExtension(UploadedFile $file): string
+    {
+        $extension = strtolower($file->getClientOriginalExtension());
+        if ($extension !== '') {
+            return $extension;
+        }
+
+        return strtolower(pathinfo($file->getClientOriginalName(), PATHINFO_EXTENSION));
+    }
+
+    private function readerTypeForExtension(string $extension): string
+    {
+        return match ($extension) {
+            'xls' => ExcelReaderType::XLS,
+            'csv', 'txt' => ExcelReaderType::CSV,
+            default => ExcelReaderType::XLSX,
+        };
     }
 
     private function suggestMapping(array $headers): array

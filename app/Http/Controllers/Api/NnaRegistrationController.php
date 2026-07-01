@@ -22,7 +22,11 @@ class NnaRegistrationController extends Controller
         $this->authorize('nna.view');
 
         $query = NnaRegistration::query()
-            ->with(['acompanantes', 'discapacidades', 'necesidades', 'photos'])
+            ->select([
+                'id', 'uuid', 'local_uuid', 'operativo_id', 'registration_code',
+                'first_name', 'last_name', 'birth_date', 'age_years', 'status',
+                'registered_at', 'synced_at', 'created_at',
+            ])
             ->latest('registered_at');
 
         if ($request->filled('operativo_id')) {

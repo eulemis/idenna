@@ -62,16 +62,20 @@ class CatalogSeeder extends Seeder
                 ['code' => 'SOLO', 'name' => 'Sin acompañante'],
             ],
             CatalogType::OrganoActuante->value => [
-                ['code' => 'IDENNA', 'name' => 'IDENNA'],
+                ['code' => 'CPNNA', 'name' => 'CPNNA'],
                 ['code' => 'CMDNNA', 'name' => 'CMDNNA'],
+                ['code' => 'TRIBUNALES', 'name' => 'Tribunales de Protección'],
+                ['code' => 'IDENNA', 'name' => 'IDENNA'],
                 ['code' => 'CONAPDIS', 'name' => 'CONAPDIS'],
-                ['code' => 'INAMUJER', 'name' => 'INAMUJER'],
-                ['code' => 'MPPP', 'name' => 'MPPP para la Comunicación'],
+                ['code' => 'OTRO', 'name' => 'Otro'],
             ],
             CatalogType::TipoMedida->value => [
+                ['code' => 'ABRIGO', 'name' => 'Abrigo'],
+                ['code' => 'INTERNACION', 'name' => 'Internación en centro hospitalario'],
+                ['code' => 'CRIANZA', 'name' => 'Responsabilidad de crianza'],
                 ['code' => 'PROTECCION', 'name' => 'Medida de protección'],
                 ['code' => 'ACOGIDA', 'name' => 'Acogida familiar'],
-                ['code' => 'INSTITUCIONAL', 'name' => 'Protección institucional'],
+                ['code' => 'OTRO', 'name' => 'Otro'],
             ],
             CatalogType::Talla->value => [
                 ['code' => 'XS', 'name' => 'XS'],
@@ -97,9 +101,14 @@ class CatalogSeeder extends Seeder
 
         foreach ($catalogs as $type => $items) {
             foreach ($items as $order => $item) {
-                Catalog::query()->updateOrCreate(
+                Catalog::withTrashed()->updateOrCreate(
                     ['type' => $type, 'code' => $item['code']],
-                    ['name' => $item['name'], 'sort_order' => $order + 1, 'is_active' => true]
+                    [
+                        'name' => $item['name'],
+                        'sort_order' => $order + 1,
+                        'is_active' => true,
+                        'deleted_at' => null,
+                    ],
                 );
             }
         }

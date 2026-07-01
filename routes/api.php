@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\ImportController;
 use App\Http\Controllers\Api\NnaRegistrationController;
 use App\Http\Controllers\Api\OperativoController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function (): void {
@@ -18,9 +19,13 @@ Route::prefix('v1')->group(function (): void {
 
     Route::middleware('auth:sanctum')->group(function (): void {
         Route::get('/me', [AuthController::class, 'me']);
+        Route::put('/me/password', [AuthController::class, 'changePassword']);
         Route::post('/logout', [AuthController::class, 'logout']);
 
         Route::apiResource('operativos', OperativoController::class);
+
+        Route::get('/users/roles', [UserController::class, 'roles']);
+        Route::apiResource('users', UserController::class);
 
         Route::get('/catalogs/types', [CatalogController::class, 'types']);
         Route::get('/catalogs/bundle', [CatalogController::class, 'bundle']);
@@ -45,7 +50,10 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/nna/{nnaRegistration}/photos', [NnaRegistrationController::class, 'uploadPhoto']);
 
         Route::get('/dashboard/stats', [DashboardController::class, 'index']);
+        Route::get('/dashboard/export', [DashboardController::class, 'export']);
         Route::get('/reports/export', [ReportController::class, 'export']);
+        Route::get('/reports/export/{token}/status', [ReportController::class, 'exportStatus']);
+        Route::get('/reports/export/{token}/download', [ReportController::class, 'exportDownload']);
 
         Route::get('/imports', [ImportController::class, 'index']);
         Route::post('/imports/preview', [ImportController::class, 'preview']);
