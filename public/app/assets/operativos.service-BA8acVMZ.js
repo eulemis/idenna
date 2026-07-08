@@ -1,1 +1,0 @@
-import{x as t}from"./index-BdfpO4aX.js";const a={async list(e){const r=e!=null&&e.active_only?"?active_only=1":"",o=await t.get(`/operativos${r}`,!0);return Array.isArray(o)?o:o.data??[]},async create(e){return t.post("/operativos",e,!0)},async update(e,r){return t.put(`/operativos/${e}`,r,!0)},async remove(e){return t.delete(`/operativos/${e}`,!0)}};export{a as o};
